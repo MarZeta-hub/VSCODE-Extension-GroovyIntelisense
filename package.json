@@ -1,0 +1,169 @@
+{
+  "name": "groovy-intellisense",
+  "displayName": "Groovy IntelliSense",
+  "description": "Autocompletado inteligente para Groovy al estilo IntelliJ: inferencia de tipos, miembros del JDK/classpath, métodos GDK, auto-import, ayuda de firmas, hover e ir a definición.",
+  "version": "0.1.1",
+  "publisher": "marcelinotena",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MarZeta-hub/VSCODE-Extension-GroovyIntelisense.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "groovy",
+    "intellisense",
+    "completion",
+    "gradle",
+    "jenkins"
+  ],
+  "activationEvents": [
+    "onLanguage:groovy",
+    "workspaceContains:**/*.groovy",
+    "workspaceContains:**/Jenkinsfile",
+    "workspaceContains:pom.xml"
+  ],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "groovy",
+        "aliases": [
+          "Groovy",
+          "groovy"
+        ],
+        "extensions": [
+          ".groovy",
+          ".gvy",
+          ".gy",
+          ".gsh"
+        ],
+        "filenames": [
+          "Jenkinsfile"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "groovyIntellisense.reindex",
+        "title": "Reindexar workspace",
+        "category": "Groovy IntelliSense"
+      },
+      {
+        "command": "groovyIntellisense.clearCache",
+        "title": "Limpiar caché de clases",
+        "category": "Groovy IntelliSense"
+      },
+      {
+        "command": "groovyIntellisense.reloadDependencies",
+        "title": "Recargar dependencias (Maven/classpath)",
+        "category": "Groovy IntelliSense"
+      },
+      {
+        "command": "groovyIntellisense.showStatus",
+        "title": "Mostrar estado",
+        "category": "Groovy IntelliSense"
+      }
+    ],
+    "configuration": {
+      "title": "Groovy IntelliSense",
+      "properties": {
+        "groovyIntellisense.javaHome": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Ruta del JDK usado para leer las clases con `javap` (y la documentación desde `src.zip`). Si está vacío se usa `JAVA_HOME` o el `java`/`javap` del `PATH`."
+        },
+        "groovyIntellisense.classpath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "resource",
+          "markdownDescription": "Jars o directorios de clases adicionales. Admite rutas absolutas o relativas a cada carpeta del workspace y patrones glob (`*`, `**`). Ejemplos: `lib/*.jar`, `build/classes/groovy/main`, `${workspaceFolder}/libs/**/*.jar`."
+        },
+        "groovyIntellisense.autoDetectGradleCache": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Experimental: busca en la caché de Gradle (`~/.gradle/caches/modules-2`) los jars de las dependencias `grupo:nombre:versión` declaradas en `build.gradle` (sin dependencias transitivas)."
+        },
+        "groovyIntellisense.maven.resolver": {
+          "type": "string",
+          "enum": [
+            "pom",
+            "mvn",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Lee los pom.xml (padres, propiedades, dependencyManagement, BOMs) y resuelve las dependencias transitivas en el repositorio local (~/.m2). Rápido y sin conexión; no necesita Maven instalado.",
+            "Ejecuta `mvn dependency:build-classpath` (o ./mvnw si existe). Resultado exacto; más lento la primera vez (se cachea según el contenido de los pom.xml). Si falla se usa el modo pom.",
+            "Desactiva la detección de dependencias Maven."
+          ],
+          "default": "pom",
+          "markdownDescription": "Cómo se obtienen las librerías de los proyectos **Maven** (`pom.xml`) para el autocompletado."
+        },
+        "groovyIntellisense.maven.localRepository": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Repositorio local de Maven. Si está vacío se usa `<localRepository>` de `~/.m2/settings.xml` o `~/.m2/repository`."
+        },
+        "groovyIntellisense.maven.executable": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Ejecutable de Maven para el modo `mvn` (p. ej. `C:\\\\tools\\\\maven\\\\bin\\\\mvn.cmd`). Si está vacío se usa `./mvnw` del proyecto o `mvn` del `PATH`."
+        },
+        "groovyIntellisense.maven.settingsFile": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Fichero `settings.xml` propio (el equivalente a `mvn -s`). Se usa para el `<localRepository>` y, en el modo `mvn`, se pasa a Maven para que use sus repositorios, mirrors y credenciales. Admite `~`, `${workspaceFolder}` y `${env:VAR}`. Si está vacío se usa el `-s`/`--settings` de `.mvn/maven.config` del proyecto (si lo hay) o `~/.m2/settings.xml`."
+        },
+        "groovyIntellisense.indexInclude": {
+          "type": "string",
+          "default": "**/*.{groovy,gvy,gy,gsh,java,gradle}",
+          "markdownDescription": "Patrón glob de los archivos del workspace que se indexan (clases y métodos propios)."
+        },
+        "groovyIntellisense.indexExclude": {
+          "type": "string",
+          "default": "**/{node_modules,build,out,target,.git,.gradle}/**",
+          "markdownDescription": "Patrón glob de los archivos excluidos del índice."
+        },
+        "groovyIntellisense.maxIndexedFiles": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1,
+          "description": "Número máximo de archivos del workspace que se indexan."
+        },
+        "groovyIntellisense.autoImport": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Añade automáticamente el `import` al aceptar una sugerencia de una clase no importada."
+        },
+        "groovyIntellisense.trace": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Registro detallado en el canal de salida **Groovy IntelliSense**."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "npm run compile && node --test out/test/",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.6.0"
+  }
+}
